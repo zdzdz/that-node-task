@@ -136,6 +136,22 @@ function setupRoutes(app) {
 
     app.delete('/db/:id', function (req, res, next) {
         var id = req.params.id;
+
+        db.deleteById(id, function(err, deletedItem){
+            if (err){
+                if(err === 'Item not found'){
+                    res.status(404).send({
+                        Error: err
+                    });
+                } else {
+                    next(err);
+                }
+            } else{
+                res.status(200).send({
+                    Result: deletedItem
+                });
+            }
+        });
         /*
          Delete single item from the database by id. Response should contain the item that was deleted like so:
              {
@@ -147,9 +163,8 @@ function setupRoutes(app) {
              }
          with a status code of 404.
          */
-        next('routing.js: "Delete item by id" route handler not implemented');
     });
-};
+}
 
 module.exports = {
     setup: setupRoutes

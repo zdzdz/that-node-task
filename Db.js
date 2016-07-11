@@ -120,7 +120,25 @@ Db.prototype.updateById = function(id, item, done){
  * @param done
  */
 Db.prototype.deleteById = function(id, done){
-    done('Method deleteById in Db.js not implemented');
+    var self = this;
+
+    this.readItems(function(err, data) {
+        if(err){
+            return done(err);
+        }
+
+        var item = findById(id, data);
+        if(!item) {
+            return done('Item not found');
+        }
+
+        self.removeItem(id, function(err) {
+            if(err){
+                return done(err);
+            }
+            done(null, item);
+        })
+    });
 };
 
 /**
@@ -193,6 +211,26 @@ Db.prototype.updateItem = function(item, currentItem, done) {
     MongoClient.connect(this.databasename, function(err, db) {
         var collection = db.collection(collectionName);
         collection.updateOne(currentItem, {$set: item}, {upsert: false}, function(err, result) {
+            assert.equal(err, null);
+            if (err){
+                done(err);
+            } else{
+                db.close();
+                done();
+            }
+        });
+    });
+};
+
+/**
+ * Removes an item in the database.
+ * @param id
+ * @param done
+ */
+Db.prototype.removeItem = function(id, done) {
+    MongoClient.connect(this.databasename, function(err, db) {
+        var collection = db.collection(collectionName);
+        collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err, result) {
             assert.equal(err, null);
             if (err){
                 done(err);
