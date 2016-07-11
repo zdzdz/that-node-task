@@ -1,21 +1,30 @@
 'use strict';
+var MongoClient = require('mongodb').MongoClient,
+    assert = require('assert');
+var collectionName = 'Items';
 var fs = require('fs');
 var uuid = require('node-uuid');
+
+
+
 var Db = function(key) {
-    this.filename = __dirname + '/data/' + key;
-}
+    this.databasename = 'mongodb://localhost:27017/' + key;
+};
 
 Db.prototype.initialize = function(done){
-    var self = this;
-    fs.exists(this.filename, function(exists){
-        if(exists){
+
+    MongoClient.connect(this.databasename,function(err, db){
+        assert.equal(null, err);
+        console.log("Connected correctly to server");
+
+        if (err){
+            done(err);
+        } else{
+            db.createCollection(collectionName, { capped: false});
+            db.close();
             done();
-        } else {
-            fs.writeFile(self.filename, JSON.stringify({
-                data: []
-            }), done);
         }
-    })
+    });
 };
 
 Db.prototype.addItem = function(item, done){
@@ -115,7 +124,7 @@ Db.prototype.writeItems = function(items, done) {
     }), {
         flag: 'w+'
     }, done);
-}
+};
 
 /**
  * Reads the data array from the database.
@@ -138,7 +147,7 @@ Db.prototype.readItems = function(done) {
 
         done(null, json.data);
     });
-}
+};
 
 Db.prototype.clear = function(done){
     fs.writeFile(this.filename, JSON.stringify({
@@ -146,7 +155,7 @@ Db.prototype.clear = function(done){
     }), {
         flag: 'w+'
     }, done);
-}
+};
 
 /**
  * Returns the item from the data array (if found) that has the specified id. Returns null if the item is not found.
@@ -156,7 +165,7 @@ Db.prototype.clear = function(done){
  */
 var findById = function(id, data) {
     for(var i = 0;i < data.length;i++){
-        if(data[i].id === id){
+        if(data[i]._id === id){
             return data[i];
         }
     }
