@@ -92,8 +92,27 @@ Db.prototype.getById = function(id, done) {
  * @param done
  */
 Db.prototype.updateById = function(id, item, done){
-    //See Db.prototype.getById
-    done('Method updateById in Db.js not implemented');
+    var self = this;
+
+    this.readItems(function(err, data) {
+        if(err){
+            return done(err);
+        }
+
+        var currentItem = findById(id, data);
+        if(!currentItem) {
+            return done('Item not found');
+        }
+
+        item._id = currentItem._id;
+
+        self.updateItem(item, currentItem, function(err) {
+            if(err){
+                return done(err);
+            }
+            done(null, item);
+        })
+    });
 };
 
 /**
@@ -147,6 +166,27 @@ Db.prototype.readItems = function(done) {
 
             done(null, data);
             db.close();
+        });
+    });
+};
+
+/**
+ * Updates an item in the database.
+ * @param item
+ * @param currentItem
+ * @param done
+ */
+Db.prototype.updateItem = function(item, currentItem, done) {
+    MongoClient.connect(this.databasename, function(err, db) {
+        var collection = db.collection(collectionName);
+        collection.updateOne(currentItem, {$set: item}, {upsert: false}, function(err, result) {
+            assert.equal(err, null);
+            if (err){
+                done(err);
+            } else{
+                db.close();
+                done();
+            }
         });
     });
 };
