@@ -166,13 +166,13 @@ Db.prototype.deleteAll = function(done){
 
 /**
  * Writes the items array to the database.
- * @param items
+ * @param item
  * @param done
  */
 Db.prototype.writeItems = function(item, done) {
     MongoClient.connect(this.databasename, function (err, db) {
         var collection = db.collection(collectionName);
-        collection.insert(item, function (err, result) {
+        collection.insert(item, function (err) {
             assert.equal(err, null);
             if (err){
                 db.close();
@@ -234,7 +234,7 @@ Db.prototype.updateItem = function(item, currentItem, done) {
 Db.prototype.removeItem = function(id, done) {
     MongoClient.connect(this.databasename, function(err, db) {
         var collection = db.collection(collectionName);
-        collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err, result) {
+        collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err) {
             assert.equal(err, null);
             if (err){
                 db.close();
