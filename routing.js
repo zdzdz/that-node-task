@@ -117,14 +117,21 @@ function setupRoutes(app) {
     });
 
     app.delete('/db', function (req, res, next) {
+        db.deleteAll(function(err, count){
+            if (err) {
+                next(err);
+            } else {
+                res.status(200).send({
+                    Result: count
+                });
+            }
+        });
         /*
          Delete all items in the database. Response should contain the count of the delete items like so:
-             {
-                Result: (Number: count of the items)
-             }
+         {
+         Result: (Number: count of the items)
+         }
          */
-        next('routing.js: "Delete all items" route handler not implemented');
-
     });
 
     app.delete('/db/:id', function (req, res, next) {

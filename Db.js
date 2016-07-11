@@ -2,7 +2,6 @@
 var MongoClient = require('mongodb').MongoClient,
     assert = require('assert');
 var collectionName = 'Items';
-var fs = require('fs');
 var uuid = require('node-uuid');
 
 
@@ -129,7 +128,21 @@ Db.prototype.deleteById = function(id, done){
  * @param done - done(err, count)
  */
 Db.prototype.deleteAll = function(done){
-    done('Method deleteAll in Db.js not implemented');
+    var self = this;
+
+    this.readItems(function(err, data) {
+        if(err){
+            return done(err);
+        }
+
+        var count = data.length;
+        self.clear(function(err){
+            if(err){
+                return done(err);
+            }
+            done(null, count);
+        })
+    });
 };
 
 /**
@@ -192,11 +205,18 @@ Db.prototype.updateItem = function(item, currentItem, done) {
 };
 
 Db.prototype.clear = function(done){
-    fs.writeFile(this.filename, JSON.stringify({
-        data: []
-    }), {
-        flag: 'w+'
-    }, done);
+    MongoClient.connect(this.databasename, function(err, db) {
+        var collection = db.collection(collectionName);
+        collection.drop(function(err) {
+            assert.equal(err, null);
+            if (err){
+                done(err);
+            } else{
+                db.close();
+                done();
+            }
+        });
+    });
 };
 
 /**
