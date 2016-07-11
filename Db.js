@@ -43,12 +43,12 @@ Db.prototype.addItem = function(item, done){
         if(err){
             return done(err);
         }
-        item.id = item.id || uuid.v1(); //use the id supplied by the user or generate a new one.
-        if(findById(item.id, data)) {
-            return done('Invalid item id. If you supply an id for the item it must be unique.');
+        item._id = item._id || uuid.v1(); //use the id supplied by the user or generate a new one.
+        if(findById(item._id, data)) {
+            return done('Invalid item id. If you supply an id for the item it must be unique.', item);
         }
-        data.push(item);
-        self.writeItems(data, function(err) {
+
+        self.writeItems(item, function(err) {
             if(err){
                 return done(err);
             }
@@ -118,12 +118,19 @@ Db.prototype.deleteAll = function(done){
  * @param items
  * @param done
  */
-Db.prototype.writeItems = function(items, done) {
-    fs.writeFile(this.filename, JSON.stringify({
-        data: items
-    }), {
-        flag: 'w+'
-    }, done);
+Db.prototype.writeItems = function(item, done) {
+    MongoClient.connect(this.databasename, function (err, db) {
+        var collection = db.collection(collectionName);
+        collection.insert(item, function (err, result) {
+            assert.equal(err, null);
+            if (err){
+                done(err);
+            } else{
+                db.close();
+                done();
+            }
+        })
+    });
 };
 
 /**

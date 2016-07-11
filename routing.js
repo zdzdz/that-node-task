@@ -68,10 +68,16 @@ function setupRoutes(app) {
              This is an indication that something has gone wrong and we handle it.
              */
             if (err) {
-                //HINT: in order for the tests to pass we should handle the error and send a custom response.
-                next(err); //HINT: this is the default handling. It is routed to return a status code of 500.
+                if(err === 'Invalid item id. If you supply an id for the item it must be unique.'){
+                    res.status(400).send({
+                        Error: 'Invalid item id ' + createdItem._id
+                        //Error: 'Item with the same id already exists'
+                    });
+                } else {
+                    next(err);
+                }
             } else {
-                res.status(200).send({
+                res.status(201).send({
                     Result: createdItem
                 });
             }
