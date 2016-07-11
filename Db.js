@@ -131,21 +131,16 @@ Db.prototype.writeItems = function(items, done) {
  * @param done
  */
 Db.prototype.readItems = function(done) {
-    var self = this;
-    var options = {
-        encoding: 'utf-8'
-    };
-    fs.readFile(this.filename, options, function(err, data){
-        if(err){
-            return done(err);
-        }
-        try {
-            var json = JSON.parse(data);
-        } catch(e) {
-            return done('Invalid json data in file '+ self.filename + '. Error:' + e);
-        }
+    MongoClient.connect(this.databasename, function(err, db) {
+        var collection = db.collection(collectionName);
+        collection.find().toArray(function (err, data) {
+            if (err) {
+                return done(err);
+            }
 
-        done(null, json.data);
+            done(null, data);
+            db.close();
+        });
     });
 };
 
