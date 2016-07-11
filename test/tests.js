@@ -41,11 +41,11 @@ describe('', function(){
                 var item = generateItem();
                 create(item, function(err, res, body){
                     var createdItem = body.Result;
-                    item.id = createdItem.id;
+                    item._id = createdItem._id;
                     expect(body.Error, 'Error').to.not.exist;
                     expect(res.statusCode, 'Status code should be 201.').to.equal(201);
                     expect(body, 'body should contain a property "Result"').to.have.property('Result');
-                    expect(createdItem, 'Result should contain the id of the created item').to.have.property('id');
+                    expect(createdItem, 'Result should contain the id of the created item').to.have.property('_id');
                     expect(createdItem, 'Result should be the created item with an added property "id"').to.deep.equal(item);
                     done();
                 });
@@ -55,10 +55,11 @@ describe('', function(){
                 var item = generateItem();
                 db.addItem(item, function(err, createdItem){
                     var secondItem = generateItem();
-                    secondItem.id = createdItem.id;
+                    secondItem._id = createdItem._id;
                     create(secondItem, function(err, res, body){
                         expect(res.statusCode, 'Create item with existing id.').to.equal(400);
-                        expect(body.Error, 'Error').to.contain('Item with the same id already exists');
+                        expect(body.Error, 'Error').to.contain('Invalid item id ' + createdItem._id);
+                        //expect(body.Error, 'Error').to.contain('Item with the same id already exists');
                         done();
                     });
                 });
@@ -100,7 +101,7 @@ describe('', function(){
             it('should return .Result containing the item with the specified id', function(done){
                 var item = generateItem();
                 db.addItem(item, function(err, createdItem){
-                    read(createdItem.id, function(err, res, body) {
+                    read(createdItem._id, function(err, res, body) {
                         expect(body.Error, 'Error').to.not.exist;
                         expect(body, 'body should contain a property "Result"').to.have.property('Result');
                         expect(body.Result, 'Result property should be an Object.').to.be.an('Object');
@@ -134,12 +135,12 @@ describe('', function(){
                     var updateItem = {
                         name: 'UpdatedName' + item.name
                     };
-                    update(createdItem.id, updateItem, function(err, res, body) {
+                    update(createdItem._id, updateItem, function(err, res, body) {
                         expect(body.Error, 'Error').to.not.exist;
                         expect(body, 'body should contain a property "Result"').to.have.property('Result');
                         expect(body.Result, 'Result property should be an Object.').to.be.an('Object');
                         var returnedItem = body.Result;
-                        updateItem.id = createdItem.id;
+                        updateItem._id = createdItem._id;
                         expect(returnedItem, 'Returned item').to.deep.equal(updateItem);
                         done();
                     })
@@ -169,7 +170,7 @@ describe('', function(){
             it('should return the deleted item', function(done){
                 var item = generateItem();
                 db.addItem(item, function(err, createdItem){
-                    del(createdItem.id, function(err, res, body) {
+                    del(createdItem._id, function(err, res, body) {
                         expect(body.Error, 'Error').to.not.exist;
                         expect(body, 'body should contain a property "Result"').to.have.property('Result');
                         expect(body.Result, 'Result property should be an Object.').to.be.an('Object');
@@ -185,7 +186,7 @@ describe('', function(){
                 db.addItem(item, function(err, createdItem1){
                     item = generateItem();
                     db.addItem(item, function(err, createdItem2){
-                        del(createdItem1.id, function() {
+                        del(createdItem1._id, function() {
                             db.readItems(function(err, items) {
                                 expect(items.length, 'Result array length').to.equal(1);
                                 expect(items[0], 'First result array item').to.deep.equal(createdItem2);
@@ -260,7 +261,7 @@ function Url(path) {
 function create(item, done) {
     request.post({
         url: Url('/db'),
-        body: JSON.stringify(item),
+        body: item,
         headers: {
             'Content-Type': 'application/json'
         },
@@ -285,7 +286,7 @@ function update(id, item, done) {
     var path = '/db/' + id;
     request.post({
         url: Url(path),
-        body: JSON.stringify(item),
+        body: item,
         headers: {
             'Content-Type': 'application/json'
         },

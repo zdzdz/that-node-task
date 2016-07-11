@@ -154,6 +154,7 @@ Db.prototype.deleteAll = function(done){
         }
 
         var count = data.length;
+
         self.clear(function(err){
             if(err){
                 return done(err);
@@ -174,6 +175,7 @@ Db.prototype.writeItems = function(item, done) {
         collection.insert(item, function (err, result) {
             assert.equal(err, null);
             if (err){
+                db.close();
                 done(err);
             } else{
                 db.close();
@@ -192,6 +194,7 @@ Db.prototype.readItems = function(done) {
         var collection = db.collection(collectionName);
         collection.find().toArray(function (err, data) {
             if (err) {
+                db.close();
                 return done(err);
             }
 
@@ -213,6 +216,7 @@ Db.prototype.updateItem = function(item, currentItem, done) {
         collection.updateOne(currentItem, {$set: item}, {upsert: false}, function(err, result) {
             assert.equal(err, null);
             if (err){
+                db.close();
                 done(err);
             } else{
                 db.close();
@@ -233,6 +237,7 @@ Db.prototype.removeItem = function(id, done) {
         collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err, result) {
             assert.equal(err, null);
             if (err){
+                db.close();
                 done(err);
             } else{
                 db.close();
@@ -244,10 +249,10 @@ Db.prototype.removeItem = function(id, done) {
 
 Db.prototype.clear = function(done){
     MongoClient.connect(this.databasename, function(err, db) {
-        var collection = db.collection(collectionName);
-        collection.drop(function(err) {
+        db.dropDatabase(function(err) {
             assert.equal(err, null);
             if (err){
+                db.close();
                 done(err);
             } else{
                 db.close();
