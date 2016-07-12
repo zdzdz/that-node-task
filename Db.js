@@ -75,14 +75,15 @@ Db.prototype.getAll = function(done){
  * @param done
  */
 Db.prototype.getById = function(id, done) {
-    this.readItems(function(err, data) {
-        if(err){
-            return done(err);
-        }
-        var item = findById(id, data);
+    collection.find({"_id": id}).next(function(err, item){
+         if(err){
+             return done(err);
+         }
+
         if(!item) {
-            done('Item not found');
+            return done('Item not found');
         }
+
         done(null, item);
     });
 };
@@ -96,12 +97,11 @@ Db.prototype.getById = function(id, done) {
 Db.prototype.updateById = function(id, item, done){
     var self = this;
 
-    this.readItems(function(err, data) {
+    collection.find({"_id": id}).next(function(err, currentItem){
         if(err){
             return done(err);
         }
 
-        var currentItem = findById(id, data);
         if(!currentItem) {
             return done('Item not found');
         }
@@ -109,9 +109,10 @@ Db.prototype.updateById = function(id, item, done){
         item._id = currentItem._id;
 
         self.updateItem(item, currentItem, function(err) {
-            if(err){
+            if(err) {
                 return done(err);
             }
+
             done(null, item);
         })
     });
@@ -125,12 +126,11 @@ Db.prototype.updateById = function(id, item, done){
 Db.prototype.deleteById = function(id, done){
     var self = this;
 
-    this.readItems(function(err, data) {
+    collection.find({"_id": id}).next(function(err, item){
         if(err){
             return done(err);
         }
 
-        var item = findById(id, data);
         if(!item) {
             return done('Item not found');
         }
@@ -139,6 +139,7 @@ Db.prototype.deleteById = function(id, done){
             if(err){
                 return done(err);
             }
+
             done(null, item);
         })
     });
