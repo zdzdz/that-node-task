@@ -27,13 +27,13 @@ Server.prototype.initialize = function (){
                 res.status(200).send('Database cleared!');
             }
         });
-    })
+    });
     routing.setup(app);
-    app.use(logErrors)
+    app.use(logErrors);
     app.use(errorHandler);
     app.use(notFound);
     this.app = app;
-}
+};
 
 Server.prototype.start = function() {
     if(!this.app) {
@@ -43,7 +43,7 @@ Server.prototype.start = function() {
     var port = process.env.PORT || 3000;
     this.app.listen(port);
     console.log("Server listening on port %d in %s mode", port, this.app.settings.env);
-}
+};
 
 function logRequest(req,res,next){
     console.log(req.method + ": " + req.url);

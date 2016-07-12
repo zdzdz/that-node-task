@@ -1,6 +1,8 @@
 'use strict';
 var MongoClient = require('mongodb').MongoClient,
     assert = require('assert');
+var database;
+var collection;
 var collectionName = 'Items';
 var uuid = require('node-uuid');
 
@@ -19,8 +21,9 @@ Db.prototype.initialize = function(done){
         if (err){
             done(err);
         } else{
-            db.createCollection(collectionName, { capped: false});
-            db.close();
+            database = db;
+            database.createCollection(collectionName, { capped: false});
+            collection = database.collection(collectionName);
             done();
         }
     });
@@ -170,19 +173,14 @@ Db.prototype.deleteAll = function(done){
  * @param done
  */
 Db.prototype.writeItems = function(item, done) {
-    MongoClient.connect(this.databasename, function (err, db) {
-        var collection = db.collection(collectionName);
         collection.insert(item, function (err) {
             assert.equal(err, null);
             if (err){
-                db.close();
                 done(err);
             } else{
-                db.close();
                 done();
             }
         })
-    });
 };
 
 /**
@@ -190,18 +188,13 @@ Db.prototype.writeItems = function(item, done) {
  * @param done
  */
 Db.prototype.readItems = function(done) {
-    MongoClient.connect(this.databasename, function(err, db) {
-        var collection = db.collection(collectionName);
         collection.find().toArray(function (err, data) {
             if (err) {
-                db.close();
                 return done(err);
             }
 
             done(null, data);
-            db.close();
         });
-    });
 };
 
 /**
@@ -211,19 +204,14 @@ Db.prototype.readItems = function(done) {
  * @param done
  */
 Db.prototype.updateItem = function(item, currentItem, done) {
-    MongoClient.connect(this.databasename, function(err, db) {
-        var collection = db.collection(collectionName);
         collection.updateOne(currentItem, {$set: item}, {upsert: false}, function(err, result) {
             assert.equal(err, null);
             if (err){
-                db.close();
                 done(err);
             } else{
-                db.close();
                 done();
             }
         });
-    });
 };
 
 /**
@@ -232,34 +220,25 @@ Db.prototype.updateItem = function(item, currentItem, done) {
  * @param done
  */
 Db.prototype.removeItem = function(id, done) {
-    MongoClient.connect(this.databasename, function(err, db) {
-        var collection = db.collection(collectionName);
         collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err) {
             assert.equal(err, null);
             if (err){
-                db.close();
                 done(err);
             } else{
-                db.close();
                 done();
             }
         });
-    });
 };
 
 Db.prototype.clear = function(done){
-    MongoClient.connect(this.databasename, function(err, db) {
-        db.dropDatabase(function(err) {
+        database.dropDatabase(function(err) {
             assert.equal(err, null);
             if (err){
-                db.close();
                 done(err);
             } else{
-                db.close();
                 done();
             }
         });
-    });
 };
 
 /**
