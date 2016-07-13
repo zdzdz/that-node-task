@@ -1,200 +1,176 @@
 'use strict';
-var MongoClient = require('mongodb').MongoClient,
-    assert = require('assert');
-var database;
+var mongoose = require('mongoose');
+mongoose.Promise = require('bluebird');
 var collection;
 var collectionName = 'Items';
 var uuid = require('node-uuid');
 
 
-
-var Db = function(key) {
+var Db = function (key) {
     this.databasename = 'mongodb://localhost:27017/' + key;
 };
 
-Db.prototype.initialize = function(done){
+Db.prototype.initialize = function (done) {
 
-    MongoClient.connect(this.databasename,function(err, db){
-        assert.equal(null, err);
-        console.log("Connected correctly to server");
+    mongoose.connect(this.databasename);
+    console.log("Connected correctly to server");
 
-        if (err){
-            done(err);
-        } else{
-            database = db;
-            database.createCollection(collectionName, { capped: false});
-            collection = database.collection(collectionName);
-            done();
-        }
+    var Schema = mongoose.Schema;
+    var itemSchema = new Schema({
+        _id: String,
+        name: String
     });
+
+    collection = mongoose.model(collectionName, itemSchema);
+
+    done();
 };
 
-Db.prototype.addItem = function(item, done){
+Db.prototype.addItem = function (item) {
     var self = this;
 
-    if(typeof item !== 'object') {
-        return done('Invalid item');
-    }
-    if(typeof done !== 'function') {
-        return done('Callback not supplied');
-    }
+    // if (typeof item !== 'object') {
+    //     return done('Invalid item');
+    // }
+    // if (typeof done !== 'function') {
+    //     return done('Callback not supplied');
+    // }
     /*
-        Get the data, push the new item and writeItems it back.
+     Get the data, push the new item and writeItems it back.
      */
-    this.readItems(function(err, data) {
-        if(err){
-            return done(err);
-        }
-        item._id = item._id || uuid.v1(); //use the id supplied by the user or generate a new one.
-        if(findById(item._id, data)) {
-            return done('Invalid item id. If you supply an id for the item it must be unique.', item);
-        }
+    item._id = item._id || uuid.v1(); //use the id supplied by the user or generate a new one.
 
-        self.writeItems(item, function(err) {
-            if(err){
-                return done(err);
+    return collection.findOne({"_id": item._id})
+        .exec()
+        .then(function (foundItem) {
+            if (!foundItem) {
+                self.writeItems(item);
+                return item;
             }
-            done(null, item);
+
+            return 'Invalid item id. If you supply an id for the item it must be unique.';
         })
-    });
+        .catch(function (err) {
+            return err;
+        });
 };
 
 /**
- * Gets all items in the database. Callbacks with the items.
- * @param done
+ * Gets all items in the database. Returns the items.
  */
-Db.prototype.getAll = function(done){
-    this.readItems(function(err, items){
-        done(err, items);
-    })
+Db.prototype.getAll = function () {
+    return this.readItems();
 };
 
 /**
- * Gets an item by id. Callbacks with the item or an error if the item wasn't found.
+ * Gets an item by id. Returns the item or an error if the item wasn't found.
  * @param id
- * @param done
  */
-Db.prototype.getById = function(id, done) {
-    collection.find({"_id": id}).next(function(err, item){
-         if(err){
-             return done(err);
-         }
+Db.prototype.getById = function (id) {
+    return collection.findOne({"_id": id})
+        .exec()
+        .then(function (item) {
+            if (!item) {
+                return 'Item not found';
+            }
 
-        if(!item) {
-            return done('Item not found');
-        }
-
-        done(null, item);
-    });
+            return item;
+        })
+        .catch(function (err) {
+            return err;
+        });
 };
 
 /**
- * Updates an item by id. Callbacks with the new state of the item or an error if the item wasn't found.
+ * Updates an item by id. Returns the new state of the item or an error if the item wasn't found.
  * @param id
  * @param item - item that will update the existing item. Id is preserved.
- * @param done
  */
-Db.prototype.updateById = function(id, item, done){
+Db.prototype.updateById = function (id, item) {
     var self = this;
 
-    collection.find({"_id": id}).next(function(err, currentItem){
-        if(err){
-            return done(err);
-        }
-
-        if(!currentItem) {
-            return done('Item not found');
-        }
-
-        item._id = currentItem._id;
-
-        self.updateItem(item, currentItem, function(err) {
-            if(err) {
-                return done(err);
+    return collection.findOne({"_id": id})
+        .exec()
+        .then(function (foundItem) {
+            if (!foundItem) {
+                return 'Item not found';
             }
 
-            done(null, item);
+            item._id = foundItem._id;
+            self.updateItem(item, foundItem);
+            return item;
         })
-    });
+        .catch(function (err) {
+            return err;
+        });
 };
 
 /**
- * Deletes an item by id. Callbacks with the item that was deleted or an error if it wasn't found.
+ * Deletes an item by id. Returns the item that was deleted or an error if it wasn't found.
  * @param id
- * @param done
  */
-Db.prototype.deleteById = function(id, done){
+Db.prototype.deleteById = function (id) {
     var self = this;
 
-    collection.find({"_id": id}).next(function(err, item){
-        if(err){
-            return done(err);
-        }
-
-        if(!item) {
-            return done('Item not found');
-        }
-
-        self.removeItem(id, function(err) {
-            if(err){
-                return done(err);
+    return collection.findOne({"_id": id})
+        .exec()
+        .then(function (foundItem) {
+            if (!foundItem) {
+                return 'Item not found';
             }
 
-            done(null, item);
+            self.removeItem(id, foundItem);
+            return foundItem;
         })
-    });
+        .catch(function (err) {
+            return err;
+        });
 };
 
 /**
- * Deletes all items in the database. Callbacks with the count of the items that were deleted.
- * @param done - done(err, count)
+ * Deletes all items in the database. Returns the count of the items that were deleted.
+
  */
-Db.prototype.deleteAll = function(done){
+Db.prototype.deleteAll = function () {
     var self = this;
 
-    this.readItems(function(err, data) {
-        if(err){
-            return done(err);
-        }
+    return this.readItems()
+        .then(function(data){
+            var count = data.length;
 
-        var count = data.length;
-
-        self.clear(function(err){
-            if(err){
-                return done(err);
-            }
-            done(null, count);
+            self.clear();
+            return count;
         })
-    });
+        .catch(function(err){
+            return err;
+        });
 };
 
 /**
- * Writes the items array to the database.
+ * Writes the item to the database.
  * @param item
- * @param done
  */
-Db.prototype.writeItems = function(item, done) {
-        collection.insert(item, function (err) {
-            assert.equal(err, null);
-            if (err){
-                done(err);
-            } else{
-                done();
-            }
-        })
+Db.prototype.writeItems = function (item) {
+    var newItem = new collection({
+        _id: item._id,
+        name: item.name
+    });
+
+    newItem.save(function(err){
+        return err;
+    });
 };
 
 /**
  * Reads the data array from the database.
- * @param done
  */
-Db.prototype.readItems = function(done) {
-        collection.find().toArray(function (err, data) {
-            if (err) {
-                return done(err);
-            }
-
-            done(null, data);
+Db.prototype.readItems = function () {
+    return collection.find({}).exec()
+        .then(function (data) {
+            return data;
+        })
+        .catch(function (err) {
+            return err;
         });
 };
 
@@ -202,44 +178,31 @@ Db.prototype.readItems = function(done) {
  * Updates an item in the database.
  * @param item
  * @param currentItem
- * @param done
  */
-Db.prototype.updateItem = function(item, currentItem, done) {
-        collection.updateOne(currentItem, {$set: item}, {upsert: false}, function(err, result) {
-            assert.equal(err, null);
-            if (err){
-                done(err);
-            } else{
-                done();
-            }
-        });
+Db.prototype.updateItem = function (item, currentItem) {
+    collection.update({"_id": currentItem._id}, item, function(err, result){
+        if(err){
+            return err;
+        }
+    });
 };
 
 /**
  * Removes an item in the database.
  * @param id
- * @param done
  */
-Db.prototype.removeItem = function(id, done) {
-        collection.remove({"_id": {$eq: id}}, {justOne: true}, function(err) {
-            assert.equal(err, null);
-            if (err){
-                done(err);
-            } else{
-                done();
-            }
-        });
+Db.prototype.removeItem = function (id) {
+    collection.remove({"_id": id}, function(err){
+        if(err){
+            return err;
+        }
+    });
 };
 
-Db.prototype.clear = function(done){
-        database.dropDatabase(function(err) {
-            assert.equal(err, null);
-            if (err){
-                done(err);
-            } else{
-                done();
-            }
-        });
+Db.prototype.clear = function () {
+    collection.remove({}, function(err){
+        return err;
+    })
 };
 
 /**
@@ -248,13 +211,13 @@ Db.prototype.clear = function(done){
  * @param data - array that contains items with ids to go through.
  * @returns {*}
  */
-var findById = function(id, data) {
-    for(var i = 0;i < data.length;i++){
-        if(data[i]._id === id){
-            return data[i];
-        }
-    }
-    return null;
-};
+// var findById = function (id, data) {
+//     for (var i = 0; i < data.length; i++) {
+//         if (data[i]._id === id) {
+//             return data[i];
+//         }
+//     }
+//     return null;
+// };
 
 module.exports = Db;

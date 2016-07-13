@@ -2,13 +2,14 @@
   "name": "ThatNodeTask",
   "dependencies": {
     "async": "*",
+    "bluebird": "^3.4.1",
     "body-parser": "*",
     "chai": "*",
     "express": "*",
     "express-domain-middleware": "*",
     "mocha": "*",
     "moment": "*",
-    "mongodb": "^2.2.1",
+    "mongoose": "^4.5.4",
     "node-uuid": "*",
     "node.extend": "*",
     "request": "*"

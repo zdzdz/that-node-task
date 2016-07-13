@@ -20,13 +20,19 @@ Server.prototype.initialize = function (){
         res.status(200).send('Working!');
     });
     app.delete('/db/clear', function(req, res){
-        db.clear(function(err) {
-            if(err){
-                next(err);
-            } else {
+        db.deleteAll()
+            .then(function (count) {
                 res.status(200).send('Database cleared!');
-            }
-        });
+            }, function (err) {
+                next(err);
+            });
+        // db.clear(function(err) {
+        //     if(err){
+        //         next(err);
+        //     } else {
+        //         res.status(200).send('Database cleared!');
+        //     }
+        // });
     });
     routing.setup(app);
     app.use(logErrors);
