@@ -87,20 +87,19 @@ Db.prototype.getById = function (id) {
  * @param item - item that will update the existing item. Id is preserved.
  */
 Db.prototype.updateById = function (id, item) {
-    var self = this;
+    var query = {"_id": id};
+    item._id = id;
 
-    return collection.findOne({"_id": id})
+    return collection.findOneAndUpdate(query, item)
         .exec()
-        .then(function (foundItem) {
-            if (!foundItem) {
-                return 'Item not found';
+        .then(function(foundItem){
+            if(!foundItem){
+                return 'Item not found'
             }
 
-            item._id = foundItem._id;
-            self.updateItem(item, foundItem);
-            return item;
+            return foundItem;
         })
-        .catch(function (err) {
+        .catch(function(err){
             return err;
         });
 };
@@ -110,19 +109,18 @@ Db.prototype.updateById = function (id, item) {
  * @param id
  */
 Db.prototype.deleteById = function (id) {
-    var self = this;
+    var query = {"_id": id};
 
-    return collection.findOne({"_id": id})
+    return collection.findOneAndRemove(query)
         .exec()
-        .then(function (foundItem) {
-            if (!foundItem) {
+        .then(function(foundItem){
+            if(!foundItem){
                 return 'Item not found';
             }
 
-            self.removeItem(id, foundItem);
             return foundItem;
         })
-        .catch(function (err) {
+        .catch(function(err){
             return err;
         });
 };
@@ -174,50 +172,10 @@ Db.prototype.readItems = function () {
         });
 };
 
-/**
- * Updates an item in the database.
- * @param item
- * @param currentItem
- */
-Db.prototype.updateItem = function (item, currentItem) {
-    collection.update({"_id": currentItem._id}, item, function(err, result){
-        if(err){
-            return err;
-        }
-    });
-};
-
-/**
- * Removes an item in the database.
- * @param id
- */
-Db.prototype.removeItem = function (id) {
-    collection.remove({"_id": id}, function(err){
-        if(err){
-            return err;
-        }
-    });
-};
-
 Db.prototype.clear = function () {
     collection.remove({}, function(err){
         return err;
     })
 };
-
-/**
- * Returns the item from the data array (if found) that has the specified id. Returns null if the item is not found.
- * @param id - id of the item to find
- * @param data - array that contains items with ids to go through.
- * @returns {*}
- */
-// var findById = function (id, data) {
-//     for (var i = 0; i < data.length; i++) {
-//         if (data[i]._id === id) {
-//             return data[i];
-//         }
-//     }
-//     return null;
-// };
 
 module.exports = Db;
